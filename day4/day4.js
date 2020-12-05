@@ -73,7 +73,7 @@ const part2 = (data) => {
 fs.readFile('input.txt', 'utf8', (err, data) => {
   const input = split(trim(data), /\s{2,}/g)
   const passports = part1(input)
-  console.log(passports)
+  // console.log(passports)
   const passports2 = part2(input)
   console.log(passports2)
 })
