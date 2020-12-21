@@ -1,5 +1,6 @@
 const fs = require('fs')
-const { split, trim, isArray, map, compact, isUndefined, isEqual, parseInt, filter, some, find, isEmpty, uniqBy, flatten, get } = require('lodash')
+const { split, trim, isArray, map, compact, isUndefined, isEqual, parseInt, filter, some, find, isEmpty, uniqBy, flatten, get, reduce } = require('lodash')
+const util = require('util')
 
 const getRules = (data) => (
   compact(map(data, rule => {
@@ -34,41 +35,42 @@ const findOuter = (rules, bags) => (
 const part1 = (data) => {
   const myBag = 'shiny gold'
   const rules = getRules(data)
-  const bags = filter(rules, rule => some(rule.innerBags, bag => isEqual(bag.type, myBag)))
-  const bags = findOuter()
-  let innerBags = bags
-  while (!isEmpty(innerBags)) {
-    innerBags = findOuter(rules, innerBags)
-    bags.push(...innerBags)
+  const bags = findOuter(rules, [{ outerBag: 'shiny gold' }])
+  let outerBags = bags
+  while (!isEmpty(outerBags)) {
+    outerBags = findOuter(rules, outerBags)
+    bags.push(...outerBags)
   }
   return uniqBy(bags, 'outerBag').length
 }
 
 const findInner = (rules, bags) => {
-
+  return flatten(map(bags, bag => {
+    return map(
+      filter(rules, rule => isEqual(rule.outerBag, bag.type)),
+      ruleBag => {
+        return { type: bag.type, number: bag.number, inner: findInner(rules, get(ruleBag, 'innerBags')) }
+      }
+    )
+  }))
 }
 
+const countBags = (bags) => reduce(bags, (acc, bag) =>
+  !isEmpty(bag.inner)
+  ? acc + bag.number + bag.number * countBags(bag.inner)
+  : acc + bag.number, 0)
+
 const part2 = (data) => {
-  const myBag = 'shiny gold'
+  const myBag = { type: 'shiny gold', number: 1 }
   const rules = getRules(data)
-  const bags = get(find(rules, rule => isEqual(rule.outerBag, myBag)), 'innerBags')
-  console.log(bags)
-  const inner = map(bags, bag => {
-    return get(find(rules, rule => isEqual(rule.outerBag, bag.type)), 'innerBags')
-  })
-  console.log(inner)
-  // let innerBags = bags
-  // while (!isEmpty(innerBags)) {
-  //   innerBags = findOuter(rules, innerBags)
-  //   bags.push(...innerBags)
-  // }
-  // return uniqBy(bags, 'outerBag').length
+  const bags = findInner(rules, [myBag])
+  return countBags(bags) - myBag.number
 }
 
 fs.readFile('input.txt', 'utf8', (err, data) => {
   const input = split(trim(data), /\n/g)
   const bags = part1(input)
-  // console.log(bags)
-  // const sumBags = part2(input)
-  // console.log(sumBags)
+  console.log(bags)
+  const sumBags = part2(input)
+  console.log(sumBags)
 })
